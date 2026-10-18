@@ -10,7 +10,7 @@ RUN pip install --no-cache-dir --prefix=/install flask
 FROM python:3.10-slim AS runner
 
 # Создаем безопасного non-root пользователя и его домашнюю директорию
-# RUN useradd -u 10001 -m appuser
+RUN useradd -u 10001 -m appuser
 
 WORKDIR /app
 
@@ -21,10 +21,10 @@ COPY --from=builder /install /usr/local
 COPY app.py .
 
 # Меняем владельца файлов в рабочей директории на созданного пользователя
-# RUN chown -R appuser:appuser /app
+RUN chown -R appuser:appuser /app
 
 # Переключаемся на non-root пользователя перед запуском приложения
-# USER 10001
+USER 10001
 
 EXPOSE 5000
 

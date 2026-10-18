@@ -1,0 +1,48 @@
+name: Docker Image Tests
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  docker-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+   # Запуск с портом 5000 вместо 8080
+      - name: Build and run Docker container
+        run: |
+          docker build -t test-app ./homework3
+          docker run -d --name app-container -p 5000:5000 test-app
+          sleep 5
+
+      # Запрос на порт 5000
+      - name: Test container HTTP response
+        run: |
+          RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:5000)
+          echo "HTTP Response code: $RESPONSE"
+          if [ "$RESPONSE" -ne 200 ]; then
+            echo "Error: Container is not responding with HTTP 200"
+            exit 1
+          fi
+
+      # 3. Тест: проверка отсутствия root-доступа внутри контейнера
+      - name: Test non-root user execution
+        run: |
+          CONTAINER_USER=$(docker exec app-container whoami)
+          echo "Container running as user: $CONTAINER_USER"
+          if [ "$CONTAINER_USER" = "root" ]; then
+            echo "Security Error: Container is running as root!"
+            exit 1
+          fi
+
+      # Очистка ресурсов после тестов
+      - name: Cleanup
+        if: always()
+        run: |
+          docker stop app-container || true
+          docker rm app-container || true
